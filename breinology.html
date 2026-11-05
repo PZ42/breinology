@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wie Brein bist du?</title>
+<style>
+  :root {
+    --bg: #f6f2ea;
+    --card: #ffffff;
+    --ink: #2a2420;
+    --muted: #7a6f66;
+    --accent: #b5452b;
+    --accent-ink: #ffffff;
+    --line: #e4dbcf;
+    --sel: #fbe9e3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1b1816;
+      --card: #262220;
+      --ink: #f1ebe4;
+      --muted: #a89c91;
+      --accent: #e0694c;
+      --accent-ink: #1b1816;
+      --line: #3a3430;
+      --sel: #3a2620;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 17px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  }
+  main { width: 100%; max-width: 640px; display: flex; flex-direction: column; }
+  header { text-align: center; margin: 8px 0 20px; }
+  header h1 { margin: 0; font-size: 1.6rem; letter-spacing: -0.01em; }
+  header p { margin: 2px 0 0; color: var(--muted); font-size: 0.95rem; }
+
+  .progress { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .bar { flex: 1; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .bar > div { height: 100%; background: var(--accent); width: 0; transition: width .3s ease; }
+  .count { font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 24px 20px;
+  }
+  .card h2 { margin: 0 0 20px; font-size: 1.25rem; line-height: 1.35; }
+  .intro p { margin: 0 0 12px; font-size: 1.1rem; overflow-wrap: anywhere; }
+  .intro a, .info a { color: var(--accent); }
+  .info { margin: -8px 0 20px; overflow-wrap: anywhere; }
+  .card img { display: block; max-width: 100%; height: auto; border-radius: 10px; margin: 8px auto; }
+  .option img { max-height: 40vh; }
+
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option {
+    display: block; width: 100%; text-align: left;
+    font: inherit; color: inherit;
+    background: transparent;
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    overflow-wrap: anywhere;
+    transition: border-color .15s, background .15s;
+  }
+  .option:hover { border-color: var(--muted); }
+  .option[aria-checked="true"] { border-color: var(--accent); background: var(--sel); }
+  .option:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  .nav { display: flex; gap: 10px; margin-top: 20px; }
+  .btn {
+    font: inherit; font-weight: 600;
+    border-radius: 12px; padding: 14px 20px; cursor: pointer;
+    border: 2px solid var(--accent);
+  }
+  .btn-primary { flex: 1; background: var(--accent); color: var(--accent-ink); }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-ghost { background: transparent; color: var(--accent); }
+  .btn-ghost[hidden] { display: none; }
+
+  .score { text-align: center; margin: 4px 0 24px; }
+  .score .num { font-size: 3.5rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  .score .lbl { color: var(--muted); font-size: 0.9rem; }
+
+  .levels { display: flex; flex-direction: column; gap: 10px; }
+  .level {
+    border: 2px solid var(--line); border-radius: 12px; padding: 14px 16px;
+    opacity: .55;
+  }
+  .level.active { border-color: var(--accent); background: var(--sel); opacity: 1; }
+  .level .head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+  .level strong { font-size: 1.05rem; }
+  .level .range { font-size: 0.85rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .level p { margin: 6px 0 0; font-size: 0.95rem; overflow-wrap: anywhere; }
+  .level a, .option a { color: var(--accent); }
+  .level .you { display: none; font-size: 0.75rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; }
+  .level.active .you { display: inline; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Wie Brein bist du?</h1>
+    
+  </header>
+  <div id="app"></div>
+</main>
+
+<script>
+// Wird von build.js aus Breinology.md befüllt
+const DATA = {
+  "title": "Wie Brein bist du?",
+  "subtitle": "",
+  "start": [
+    "![Breinology](https://release.at/wp-content/uploads/BB-Breinology.jpg)",
+    "Folgender Test zeigt dir auf, wie weit dein Brein-Sein schon fortgeschritten ist.",
+    "Beantworte alles nach bestem Wissen und Gewissen und lüge nicht!"
+  ],
+  "questions": [
+    {
+      "q": "Du findest in der Straßenbahn unter deinem Sitz einen vergessenen Kontrabass. Was machst du?",
+      "info": [],
+      "a": [
+        [
+          "Der kommt natürlich in meinen Breinology-Winkel zu den ganzen anderen Reliquien.",
+          3
+        ],
+        [
+          "Ich spiele die ersten Takte von \"Neni's Tune\". Leider ist bei diesem Bass der 5/4 Takt kaputt. Ich lasse ihn liegen.",
+          -1
+        ],
+        [
+          "Nicht schon wieder! Ich lege ihn in ein öffentliches Kontrabass-Tausch-Regal.",
+          2
+        ]
+      ]
+    },
+    {
+      "q": "Ring, ring! Es läutet an der Tür! Du erwartest niemanden. Wer kann es sein?",
+      "info": [],
+      "a": [
+        [
+          "Der Amazonfahrer liefert schon heute die neue Andreas Gabalier-CD (inkl. zwei Bonus-Tracks).",
+          -5
+        ],
+        [
+          "Das sind sicher wieder die Missionare von Breinology, die mich bekehren wollen. Aber ich sage \"Nein\"!",
+          2
+        ],
+        [
+          "Fantastisch! Ich bin mal wieder nicht zuhause, wenn wer anläutet.",
+          0
+        ]
+      ]
+    },
+    {
+      "q": "Der Winter naht. Du brauchst eine Kopfbedeckung, aber welche?",
+      "info": [],
+      "a": [
+        [
+          "Einen neuen Hut",
+          2
+        ],
+        [
+          "Einen gebrauchten Hut",
+          5
+        ],
+        [
+          "Nein, brauche ich nicht - ich habe einen allwettertauglichen Alu-Hut.",
+          1
+        ]
+      ]
+    },
+    {
+      "q": "Bist du bereits Mitglied in einer Kirche, Sekte, Kammer o.ä.?",
+      "info": [],
+      "a": [
+        [
+          "Ja, ich bin Ragga der 2. Stufe bei Breinology.",
+          3
+        ],
+        [
+          "Ja, ich bin Reserve-Maultrommler in der Marschmusik des 47er Regiments.",
+          2
+        ],
+        [
+          "Nein, ich habe ein Klimaticket.",
+          -1
+        ]
+      ]
+    },
+    {
+      "q": "Welche berühmten Werke der Musikwelt kennst du?",
+      "info": [],
+      "a": [
+        [
+          "Ich kenne Carmen, die blonde Kellnerin vom Rossini in Hernals.",
+          -1
+        ],
+        [
+          "Das Georgslied aus \"The Holy Book of the Saints of Breinology\"",
+          3
+        ],
+        [
+          "[Spotify](https://open.spotify.com/intl-de/album/6yF6MNbbrz3NCx3I8fVeGI)",
+          2
+        ]
+      ]
+    },
+    {
+      "q": "Schränkt dich die allgegenwärtige Shrinkflation bei deinem Kulturgenuss ein?",
+      "info": [],
+      "a": [
+        [
+          "Ja, ich muss im Konzerthaus jetzt immer drei Lachsbrötchen runterwürgen, um satt zu werden.",
+          0
+        ],
+        [
+          "Nein, ich bin freischaffender Künstler. Ich lebe nur von Luft und Liebe.",
+          3
+        ],
+        [
+          "Frage nicht - die Konzertkarten werden immer kleiner, aber nie billiger.",
+          1
+        ]
+      ]
+    },
+    {
+      "q": "Du triffst Dr. Albert Breinstein. Welche Frage wolltest du ihm schon immer stellen?",
+      "info": [],
+      "a": [
+        [
+          "Wo bekommt man so einen schicken weißen Mantel?",
+          3
+        ],
+        [
+          "Guatdassiditriff! Wiaspätisesn?",
+          1
+        ],
+        [
+          "Kommen da noch viele Fragen?",
+          -1
+        ]
+      ]
+    }
+  ],
+  "levels": [
+    {
+      "title": "😐 Breinlein",
+      "text": [
+        "Du hast von Breinology wohl erst gestern gehört. Noch ist nicht alles verloren.",
+        "Mein Tip: Kaufe dir umgehend [Studienmaterial](https://www.gramola.at/products/9003643993877)."
+      ],
+      "min": null,
+      "max": -2
+    },
+    {
+      "title": "🤪 Breinschmidl",
+      "text": [
+        "Ein solides Fundament! Du bist auf dem besten Weg, aber du bist noch nicht ganz im Takt.",
+        "Mein Tip: Besuche möglichst viele [Vorträge](https://georgbreinschmid.com/termine/)."
+      ],
+      "min": -1,
+      "max": 13
+    },
+    {
+      "title": "🤯 Breinologe",
+      "text": [
+        "Gratulation – du bist durch und durch Brein. Dir kann keiner mehr helfen."
+      ],
+      "min": 14,
+      "max": null
+    }
+  ],
+  "minScore": -8,
+  "maxScore": 22
+};
+const QUESTIONS = DATA.questions;
+const LEVELS = DATA.levels.map(l => ({ ...l, min: l.min ?? -Infinity, max: l.max ?? Infinity }));
+
+const app = document.getElementById("app");
+const answers = new Array(QUESTIONS.length).fill(null);
+let current = 0;
+
+function esc(s) {
+  return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// Markdown-Bilder ![Beschreibung](datei.jpg) und Links [Text](URL) umsetzen
+function linkify(s) {
+  return esc(s)
+    // nur Internet-Adressen oder Dateien im Ordner (keine anderen Protokolle)
+    .replace(/!\[([^\]]*)\]\(([^\s)]+)\)/g, (m, alt, src) =>
+      /^https?:\/\/|^[^:]*$/.test(src) ? `<img src="${src}" alt="${alt}" loading="lazy">` : m)
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+      (_, text, url) => `<a href="${url}" target="_blank" rel="noopener">${text}</a>`);
+}
+
+function progress(done) {
+  const pct = Math.round(done / QUESTIONS.length * 100);
+  return `<div class="progress">
+    <div class="bar"><div style="width:${pct}%"></div></div>
+    <span class="count">${Math.min(done + 1, QUESTIONS.length)} / ${QUESTIONS.length}</span>
+  </div>`;
+}
+
+function renderQuestion() {
+  const item = QUESTIONS[current];
+  const chosen = answers[current];
+  const last = current === QUESTIONS.length - 1;
+  app.innerHTML = `${progress(current)}
+    <section class="card">
+      <h2 id="qtitle">${esc(item.q)}</h2>
+      ${item.info.map(t => `<p class="info">${linkify(t)}</p>`).join("")}
+      <div class="options" role="radiogroup" aria-labelledby="qtitle">
+        ${item.a.map(([label], i) =>
+          `<div class="option" role="radio" tabindex="0" aria-checked="${chosen === i}" data-i="${i}">${linkify(label)}</div>`
+        ).join("")}
+      </div>
+      <div class="nav">
+        <button class="btn btn-ghost" id="back" ${current === 0 ? "hidden" : ""}>Zurück</button>
+        <button class="btn btn-primary" id="next" ${chosen === null ? "disabled" : ""}>${last ? "Auswerten" : "Weiter"}</button>
+      </div>
+    </section>`;
+
+  app.querySelectorAll(".option").forEach(opt => {
+    const select = () => {
+      answers[current] = Number(opt.dataset.i);
+      app.querySelectorAll(".option").forEach(o => o.setAttribute("aria-checked", o === opt));
+      document.getElementById("next").disabled = false;
+    };
+    opt.addEventListener("click", e => { if (!e.target.closest("a")) select(); });
+    opt.addEventListener("keydown", e => {
+      if ((e.key === "Enter" || e.key === " ") && !e.target.closest("a")) { e.preventDefault(); select(); }
+    });
+  });
+  document.getElementById("back").addEventListener("click", () => { current--; renderQuestion(); });
+  document.getElementById("next").addEventListener("click", () => {
+    if (answers[current] === null) return;
+    if (last) renderResult(); else { current++; renderQuestion(); }
+  });
+  window.scrollTo(0, 0);
+}
+
+function renderResult() {
+  const sum = answers.reduce((s, a, i) => s + QUESTIONS[i].a[a][1], 0);
+  const range = l =>
+    l.min === -Infinity ? `bis ${l.max}` : l.max === Infinity ? `ab ${l.min}` : `${l.min} bis ${l.max}`;
+  app.innerHTML = `
+    <section class="card">
+      <div class="score">
+        <div class="num">${sum}</div>
+        <div class="lbl">Punkte</div>
+      </div>
+      <div class="levels">
+        ${LEVELS.map(l => {
+          const active = sum >= l.min && sum <= l.max;
+          return `<div class="level${active ? " active" : ""}">
+            <div class="head"><strong>${esc(l.title)}</strong><span class="range">${range(l)} Punkte</span></div>
+            <span class="you">Das bist du</span>
+            ${l.text.map(t => `<p>${linkify(t)}</p>`).join("")}
+          </div>`;
+        }).join("")}
+      </div>
+      <div class="nav">
+        <button class="btn btn-primary" id="restart">Nochmal spielen</button>
+      </div>
+    </section>`;
+  document.getElementById("restart").addEventListener("click", () => {
+    answers.fill(null); current = 0; begin();
+  });
+  window.scrollTo(0, 0);
+}
+
+function renderStart() {
+  app.innerHTML = `
+    <section class="card intro">
+      ${DATA.start.map(t => `<p>${linkify(t)}</p>`).join("")}
+      <div class="nav">
+        <button class="btn btn-primary" id="start">Test starten</button>
+      </div>
+    </section>`;
+  document.getElementById("start").addEventListener("click", renderQuestion);
+  window.scrollTo(0, 0);
+}
+
+function begin() {
+  if (DATA.start.length) renderStart(); else renderQuestion();
+}
+
+begin();
+</script>
+</body>
+</html>
